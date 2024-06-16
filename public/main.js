@@ -41,6 +41,7 @@ const iceServers = [
  */
 
 const lc = new RTCPeerConnection({ iceServers });
+//const lc = new RTCPeerConnection();
 const dc = lc.createDataChannel('channel');
 dc.onmessage = (e) => console.log('just got a message ' + e.data);
 dc.onopen = (e) => console.log('Connection opened!');
@@ -48,17 +49,27 @@ lc.onicecandidate = (e) => {
   console.log(
     'New Ice Candidate! reprinting SDP' + JSON.stringify(lc.localDescription)
   );
+  console.log(lc.localDescription);
   socket.emit('offer', { sdp: lc.localDescription });
 };
+
+
+lc.addTransceiver('video', {'direction': 'recvonly'})
+
 lc.createOffer()
   .then((o) => lc.setLocalDescription(o))
   .then((a) => console.log('set successfully!'));
 
 socket.on('getAnswer', (data) => {
-  lc.setRemoteDescription(data.sdp);
+  const sessionDescription = new RTCSessionDescription(data.sdp);
+  console.log(sessionDescription);
+  lc.setRemoteDescription(sessionDescription);
 });
 
+
 lc.ontrack = (event) => {
+  console.log('Track event fired');
+  console.log(event);
   if (remoteVideo.srcObject !== event.streams[0])
     remoteVideo.srcObject = event.streams[0];
 };
